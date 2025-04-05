@@ -1,0 +1,295 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">
+            <i class="fas fa-user-shield me-2"></i>Admin Panel
+        </h2>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+        </a>
+    </div>
+
+    <div class="row">
+        <!-- Statistics -->
+        <div class="col-md-4 mb-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-chart-pie me-2"></i>Total Scans
+                    </h5>
+                    <h2 class="mb-0">{{ total_scans }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-clock me-2"></i>Scans Today
+                    </h5>
+                    <h2 class="mb-0">{{ scans_today }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-users me-2"></i>Total Users
+                    </h5>
+                    <h2 class="mb-0">{{ users|length }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Top Users -->
+        <div class="col-md-8 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-trophy me-2"></i>Top Users
+                    </h5>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Username</th>
+                                    <th>Total Scans</th>
+                                    <th>Total Analyses</th>
+                                    <th>Last Activity</th>
+                                    <th>Credits</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user, total_scans, total_analyses, last_activity in top_users %}
+                                <tr>
+                                    <td>{{ user.username }}</td>
+                                    <td>{{ total_scans }}</td>
+                                    <td>{{ total_analyses }}</td>
+                                    <td>
+                                        {% if last_activity %}
+                                            {{ last_activity.strftime('%Y-%m-%d %H:%M') }}
+                                        {% else %}
+                                            Never
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ user.credits }}</td>
+                                    <td>
+                                        {% if user.is_admin %}
+                                            <span class="badge bg-danger">Admin</span>
+                                        {% else %}
+                                            <span class="badge bg-success">User</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- User Management -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-users me-2"></i>User Management
+                    </h5>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Username</th>
+                                    <th>Scans</th>
+                                    <th>Credits</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in users %}
+                                <tr>
+                                    <td>{{ user.username }}</td>
+                                    <td>{{ user.scans_count }}</td>
+                                    <td>{{ user.credits }}</td>
+                                    <td>
+                                        <button class="btn btn-info btn-sm" onclick="toggleAdmin({{ user.id }}, {{ user.is_admin|tojson }})">
+                                            <i class="fas fa-user-shield"></i>
+                                        </button>
+                                        <button class="btn btn-primary btn-sm" onclick="showAddCredits({{ user.id }})">
+                                            <i class="fas fa-plus"></i>
+                                        </button>
+                                        <button class="btn btn-danger btn-sm" onclick="deleteUser({{ user.id }})">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Credit Requests -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-hand-holding-usd me-2"></i>Credit Requests
+                    </h5>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                    <th>Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for request in pending_requests %}
+                                <tr>
+                                    <td>{{ request.user.username }}</td>
+                                    <td>{{ request.amount }}</td>
+                                    <td>
+                                        <span class="badge bg-warning">Pending</span>
+                                    </td>
+                                    <td>{{ request.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>
+                                        <button class="btn btn-success btn-sm me-2" 
+                                                onclick="processRequest({{ request.id }}, 'approve')">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                        <button class="btn btn-danger btn-sm" 
+                                                onclick="processRequest({{ request.id }}, 'reject')">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Credits Modal -->
+<div class="modal fade" id="addCreditsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Credits</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addCreditsForm">
+                    <input type="hidden" id="userId" name="user_id">
+                    <div class="mb-3">
+                        <label for="amount" class="form-label">Amount</label>
+                        <input type="number" class="form-control" id="amount" name="amount" min="1" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-plus me-2"></i>Add Credits
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function processRequest(requestId, action) {
+    $.ajax({
+        url: '{{ url_for("process_credit_request") }}',
+        type: 'POST',
+        data: {
+            request_id: requestId,
+            action: action
+        },
+        success: function(response) {
+            location.reload();
+        },
+        error: function(xhr) {
+            alert(xhr.responseJSON?.error || 'An error occurred');
+        }
+    });
+}
+
+function toggleAdmin(userId, isAdmin) {
+    $.ajax({
+        url: '{{ url_for("toggle_admin") }}',
+        type: 'POST',
+        data: {
+            user_id: userId
+        },
+        success: function(response) {
+            location.reload();
+        },
+        error: function(xhr) {
+            alert(xhr.responseJSON?.error || 'An error occurred');
+        }
+    });
+}
+
+function showAddCredits(userId) {
+    $('#userId').val(userId);
+    $('#addCreditsModal').modal('show');
+}
+
+$('#addCreditsForm').on('submit', function(e) {
+    e.preventDefault();
+    const userId = $('#userId').val();
+    const amount = $('#amount').val();
+    
+    $.ajax({
+        url: '{{ url_for("add_credits") }}',
+        type: 'POST',
+        data: {
+            user_id: userId,
+            amount: amount
+        },
+        success: function(response) {
+            location.reload();
+        },
+        error: function(xhr) {
+            alert(xhr.responseJSON?.error || 'An error occurred');
+        }
+    });
+});
+
+function deleteUser(userId) {
+    if (confirm('Are you sure you want to delete this user and all their data? This action cannot be undone.')) {
+        $.ajax({
+            url: '{{ url_for("delete_user") }}',
+            type: 'POST',
+            data: {
+                user_id: userId
+            },
+            success: function(response) {
+                location.reload();
+            },
+            error: function(xhr) {
+                alert(xhr.responseJSON?.error || 'An error occurred while deleting the user');
+            }
+        });
+    }
+}
+</script>
+{% endblock %} 

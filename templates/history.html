@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Analysis History</h2>
+    
+    {% if analyses %}
+        <div class="row">
+            {% for analysis in analyses %}
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="fas fa-file-alt me-2"></i>Analysis {{ analysis.id }}
+                        </h5>
+                        <p class="card-text">
+                            <small class="text-muted">
+                                <i class="fas fa-calendar me-2"></i>{{ analysis.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}
+                            </small>
+                        </p>
+                        
+                        <div class="mb-3">
+                            <h6>Files Compared:</h6>
+                            <ul class="list-group">
+                                {% for file in analysis.files %}
+                                <li class="list-group-item">
+                                    <i class="fas fa-file me-2"></i>{{ file }}
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+
+                        <div class="mb-3">
+                            <h6>Top 5 Most Frequent Words:</h6>
+                            <div class="d-flex flex-wrap gap-2">
+                                {% for word, count in analysis.word_frequency.items() %}
+                                    {% if loop.index <= 5 %}
+                                    <span class="badge bg-primary">
+                                        {{ word }} ({{ count }})
+                                    </span>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <h6>Similarity Scores:</h6>
+                            <div class="progress mb-2" style="height: 20px;">
+                                <div class="progress-bar bg-success" role="progressbar" 
+                                     style="width: {{ (analysis.cosine_similarity * 100)|round }}%">
+                                    Cosine: {{ (analysis.cosine_similarity * 100)|round }}%
+                                </div>
+                            </div>
+                            <div class="progress" style="height: 20px;">
+                                <div class="progress-bar bg-info" role="progressbar" 
+                                     style="width: {{ (analysis.levenshtein_similarity * 100)|round }}%">
+                                    Levenshtein: {{ (analysis.levenshtein_similarity * 100)|round }}%
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('download_analysis', analysis_id=analysis.id) }}" 
+                               class="btn btn-primary">
+                                <i class="fas fa-download me-2"></i>Download Analysis
+                            </a>
+                            
+                            {% if analysis.is_similar %}
+                            <a href="{{ url_for('download_similar', analysis_id=analysis.id) }}" 
+                               class="btn btn-success">
+                                <i class="fas fa-file-download me-2"></i>Download Similar Documents
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>No analysis history found.
+        </div>
+    {% endif %}
+</div>
+{% endblock %} 
